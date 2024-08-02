@@ -19,21 +19,17 @@ jobs:
     - name: List directory contents
       run: ls -al
 
-    - name: Create scripts directory and add scripts
+    - name: Create db.env file
       run: |
-        mkdir -p scripts
-        echo '#!/bin/bash
-        while ! mysqladmin ping -h"$DB_HOST" --silent; do
-            echo "Waiting for MySQL..."
-            sleep 2
-        done' > scripts/wait_on_mysql.sh
-        echo '#!/bin/bash
-        echo "Starting the application..."
-        # Add your startup commands here' > scripts/launch_within_docker.sh
-        chmod +x scripts/wait_on_mysql.sh scripts/launch_within_docker.sh
+        echo 'DB_HOST=db
+        DB_PORT=3306
+        MYSQL_DATABASE=whatsapp
+        MYSQL_USER=testuser
+        MYSQL_PASSWORD=testpass
+        MYSQL_ROOT_PASSWORD=testpass' > db.env
 
-    - name: List scripts directory contents
-      run: ls -al scripts
+    - name: List installation directory contents
+      run: ls -al installation
 
     - name: Pull coreapp and waweb images
       run: |
