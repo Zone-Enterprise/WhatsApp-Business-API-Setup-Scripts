@@ -19,17 +19,21 @@ jobs:
     - name: List directory contents
       run: ls -al
 
-    - name: Create db.env file
+    - name: Create scripts directory and add scripts
       run: |
-        echo 'DB_HOST=db
-        DB_PORT=3306
-        MYSQL_DATABASE=whatsapp
-        MYSQL_USER=testuser
-        MYSQL_PASSWORD=testpass
-        MYSQL_ROOT_PASSWORD=testpass' > db.env
+        mkdir -p scripts
+        echo '#!/bin/bash
+        while ! mysqladmin ping -h"$DB_HOST" --silent; do
+            echo "Waiting for MySQL..."
+            sleep 2
+        done' > scripts/wait_on_mysql.sh
+        echo '#!/bin/bash
+        echo "Starting the application..."
+        # Add your startup commands here' > scripts/launch_within_docker.sh
+        chmod +x scripts/wait_on_mysql.sh scripts/launch_within_docker.sh
 
-    - name: List installation directory contents
-      run: ls -al installation
+    - name: List scripts directory contents
+      run: ls -al scripts
 
     - name: Pull coreapp and waweb images
       run: |
@@ -56,6 +60,9 @@ jobs:
         COPY scripts/wait_on_mysql.sh /opt/whatsapp/bin/wait_on_mysql.sh
         COPY scripts/launch_within_docker.sh /opt/whatsapp/bin/launch_within_docker.sh
         CMD [\"/opt/whatsapp/bin/wait_on_mysql.sh\", \"/opt/whatsapp/bin/launch_within_docker.sh\"]" > Dockerfile-waweb
+
+    - name: List Dockerfiles
+      run: ls -al
 
     - name: Build Docker images
       run: |
@@ -127,6 +134,9 @@ jobs:
             cap_drop:
               - MKNOD' > docker-compose.yml
     
+    - name: List Docker Compose file
+      run: cat docker-compose.yml
+
     - name: Run Docker Compose
       run: docker-compose up -d
 
