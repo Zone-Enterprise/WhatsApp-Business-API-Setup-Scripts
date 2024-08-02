@@ -10,6 +10,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      WA_API_VERSION: 2.41.2  # Set your desired version here
+
     steps:
     - uses: actions/checkout@v4
 
@@ -23,16 +26,19 @@ jobs:
         ENV MYSQL_PASSWORD=testpass' > Dockerfile-db
 
         # Create Dockerfile for the wacore service
-        echo 'FROM docker.whatsapp.biz/coreapp:v${WA_API_VERSION}
-        COPY wait_on_mysql.sh /opt/whatsapp/bin/wait_on_mysql.sh
-        COPY launch_within_docker.sh /opt/whatsapp/bin/launch_within_docker.sh
-        CMD ["/opt/whatsapp/bin/wait_on_mysql.sh", "/opt/whatsapp/bin/launch_within_docker.sh"]' > Dockerfile-wacore
+        echo "FROM docker.whatsapp.biz/coreapp:v${{ env.WA_API_VERSION }}
+        COPY scripts/wait_on_mysql.sh /opt/whatsapp/bin/wait_on_mysql.sh
+        COPY scripts/launch_within_docker.sh /opt/whatsapp/bin/launch_within_docker.sh
+        CMD [\"/opt/whatsapp/bin/wait_on_mysql.sh\", \"/opt/whatsapp/bin/launch_within_docker.sh\"]" > Dockerfile-wacore
 
         # Create Dockerfile for the waweb service
-        echo 'FROM docker.whatsapp.biz/web:v${WA_API_VERSION}
-        COPY wait_on_mysql.sh /opt/whatsapp/bin/wait_on_mysql.sh
-        COPY launch_within_docker.sh /opt/whatsapp/bin/launch_within_docker.sh
-        CMD ["/opt/whatsapp/bin/wait_on_mysql.sh", "/opt/whatsapp/bin/launch_within_docker.sh"]' > Dockerfile-waweb
+        echo "FROM docker.whatsapp.biz/web:v${{ env.WA_API_VERSION }}
+        COPY scripts/wait_on_mysql.sh /opt/whatsapp/bin/wait_on_mysql.sh
+        COPY scripts/launch_within_docker.sh /opt/whatsapp/bin/launch_within_docker.sh
+        CMD [\"/opt/whatsapp/bin/wait_on_mysql.sh\", \"/opt/whatsapp/bin/launch_within_docker.sh\"]" > Dockerfile-waweb
+
+    - name: List directory contents
+      run: ls -al
 
     - name: Build Docker images
       run: |
