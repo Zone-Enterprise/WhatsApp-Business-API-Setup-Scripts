@@ -35,6 +35,18 @@ jobs:
     - name: List scripts directory contents
       run: ls -al scripts
 
+    - name: Create db.env file
+      run: |
+        echo 'DB_HOST=db
+        DB_PORT=3306
+        MYSQL_DATABASE=whatsapp
+        MYSQL_USER=testuser
+        MYSQL_PASSWORD=testpass
+        MYSQL_ROOT_PASSWORD=testpass' > db.env
+
+    - name: List db.env file
+      run: ls -al db.env
+
     - name: Pull coreapp and waweb images
       run: |
         docker pull docker.whatsapp.biz/coreapp:v${{ env.WA_API_VERSION }}
@@ -136,6 +148,9 @@ jobs:
     
     - name: List Docker Compose file
       run: cat docker-compose.yml
+
+    - name: List directory contents to verify db.env
+      run: ls -al
 
     - name: Run Docker Compose
       run: docker-compose up -d
