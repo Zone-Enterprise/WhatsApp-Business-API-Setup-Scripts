@@ -1,4 +1,4 @@
-name: Docker Image CI
+name: WA Docker Image CI
 
 on:
   push:
@@ -10,15 +10,43 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      WA_API_VERSION: 2.41.2  # Set your desired version here
+
     steps:
     - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+
+    - name: Generate Dockerfiles from Compose
+      run: |
+        # Create Dockerfile for the db service
+        echo 'FROM mysql:8.0.33
+        CMD ["--default-authentication-plugin=mysql_native_password"]
+        ENV MYSQL_ROOT_PASSWORD=testpass
+        ENV MYSQL_USER=testuser
+        ENV MYSQL_PASSWORD=testpass' > Dockerfile-db
+
+        # Create Dockerfile for the wacore service
+        echo "FROM docker.whatsapp.biz/coreapp:v${{ env.WA_API_VERSION }}
+        COPY wait_on_mysql.sh /opt/whatsapp/bin/wait_on_mysql.sh
+        COPY launch_within_docker.sh /opt/whatsapp/bin/launch_within_docker.sh
+        CMD [\"/opt/whatsapp/bin/wait_on_mysql.sh\", \"/opt/whatsapp/bin/launch_within_docker.sh\"]" > Dockerfile-wacore
+
+        # Create Dockerfile for the waweb service
+        echo "FROM docker.whatsapp.biz/web:v${{ env.WA_API_VERSION }}
+        COPY wait_on_mysql.sh /opt/whatsapp/bin/wait_on_mysql.sh
+        COPY launch_within_docker.sh /opt/whatsapp/bin/launch_within_docker.sh
+        CMD [\"/opt/whatsapp/bin/wait_on_mysql.sh\", \"/opt/whatsapp/bin/launch_within_docker.sh\"]" > Dockerfile-waweb
+
+    - name: Build Docker images
+      run: |
+        docker build -f Dockerfile-db -t db-image:latest .
+        docker build -f Dockerfile-wacore -t wacore-image:latest .
+        docker build -f Dockerfile-waweb -t waweb-image:latest .
     
     - name: Set up Docker Compose
       run: |
-        echo "version: '3'
-
+        echo 'version: "3"
+        
         volumes:
           whatsappMedia:
             driver: local
@@ -27,51 +55,42 @@ jobs:
 
         services:
           db:
+            image: db-image:latest
             platform: linux/x86_64
-            image: mysql:8.0.33
-            command: --default-authentication-plugin=mysql_native_password
             restart: always
-            environment:
-              MYSQL_ROOT_PASSWORD: testpass
-              MYSQL_USER: testuser
-              MYSQL_PASSWORD: testpass
             expose:
-              - '33060'
+                - "33060"
             ports:
-              - '33060:3306'
+                - "33060:3306"
             volumes:
-              - mysqlData:/var/lib/mysql
+             - mysqlData:/var/lib/mysql
             network_mode: bridge
             cap_drop:
               - MKNOD
-
           wacore:
+            image: wacore-image:latest
             platform: linux/x86_64
-            image: docker.whatsapp.biz/coreapp:v\${WA_API_VERSION:?Run docker-compose with env var WA_API_VERSION (ex. WA_API_VERSION=2.41.2 docker-compose <command> <options>)}
-            command: ['/opt/whatsapp/bin/wait_on_mysql.sh', '/opt/whatsapp/bin/launch_within_docker.sh']
             volumes:
-              - whatsappMedia:/usr/local/wamedia
+             - whatsappMedia:/usr/local/wamedia
             env_file:
               - db.env
             environment:
               WA_RUNNING_ENV_VERSION: v2.2.3
               ORCHESTRATION: DOCKER-COMPOSE
             depends_on:
-              - 'db'
+              - "db"
             network_mode: bridge
             links:
               - db
             cap_drop:
               - MKNOD
-
           waweb:
+            image: waweb-image:latest
             platform: linux/x86_64
-            image: docker.whatsapp.biz/web:v\${WA_API_VERSION:?Run docker-compose with env var WA_API_VERSION (ex. WA_API_VERSION=2.41.2 docker-compose <command> <options>)}
-            command: ['/opt/whatsapp/bin/wait_on_mysql.sh', '/opt/whatsapp/bin/launch_within_docker.sh']
             ports:
-              - '9090:443'
+             - "9090:443"
             volumes:
-              - whatsappMedia:/usr/local/wamedia
+             - whatsappMedia:/usr/local/wamedia
             env_file:
               - db.env
             environment:
@@ -79,14 +98,14 @@ jobs:
               WA_RUNNING_ENV_VERSION: v2.2.3
               ORCHESTRATION: DOCKER-COMPOSE
             depends_on:
-              - 'db'
-              - 'wacore'
+              - "db"
+              - "wacore"
             links:
               - db
               - wacore
             network_mode: bridge
             cap_drop:
-              - MKNOD" > docker-compose.yml
+              - MKNOD' > docker-compose.yml
     
     - name: Run Docker Compose
       run: docker-compose up -d
