@@ -19,8 +19,8 @@ jobs:
     - name: List directory contents
       run: ls -al
 
-    - name: List scripts directory contents
-      run: ls -al scripts
+    - name: List installation directory contents
+      run: ls -al installation
 
     - name: Pull coreapp and waweb images
       run: |
@@ -38,14 +38,14 @@ jobs:
 
         # Create Dockerfile for the wacore service
         echo "FROM docker.whatsapp.biz/coreapp:v${{ env.WA_API_VERSION }}
-        COPY scripts/wait_on_mysql.sh /opt/whatsapp/bin/wait_on_mysql.sh
-        COPY scripts/launch_within_docker.sh /opt/whatsapp/bin/launch_within_docker.sh
+        COPY installation/wait_on_mysql.sh /opt/whatsapp/bin/wait_on_mysql.sh
+        COPY installation/launch_within_docker.sh /opt/whatsapp/bin/launch_within_docker.sh
         CMD [\"/opt/whatsapp/bin/wait_on_mysql.sh\", \"/opt/whatsapp/bin/launch_within_docker.sh\"]" > Dockerfile-wacore
 
         # Create Dockerfile for the waweb service
         echo "FROM docker.whatsapp.biz/web:v${{ env.WA_API_VERSION }}
-        COPY scripts/wait_on_mysql.sh /opt/whatsapp/bin/wait_on_mysql.sh
-        COPY scripts/launch_within_docker.sh /opt/whatsapp/bin/launch_within_docker.sh
+        COPY installation/wait_on_mysql.sh /opt/whatsapp/bin/wait_on_mysql.sh
+        COPY installation/launch_within_docker.sh /opt/whatsapp/bin/launch_within_docker.sh
         CMD [\"/opt/whatsapp/bin/wait_on_mysql.sh\", \"/opt/whatsapp/bin/launch_within_docker.sh\"]" > Dockerfile-waweb
 
     - name: Build Docker images
