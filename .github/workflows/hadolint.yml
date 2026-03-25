@@ -32,6 +32,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Generate Dockerfile for hadolint scanning
+        run: |
+          echo 'FROM mysql:8.0.33
+          ENV MYSQL_ROOT_PASSWORD=testpass
+          ENV MYSQL_USER=testuser
+          ENV MYSQL_PASSWORD=testpass
+          CMD ["--default-authentication-plugin=mysql_native_password"]' > Dockerfile
+
       - name: Run hadolint
         uses: hadolint/hadolint-action@f988afea3da57ee48710a9795b6bb677cc901183
         with:
