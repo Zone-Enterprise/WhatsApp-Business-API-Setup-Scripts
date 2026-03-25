@@ -16,6 +16,19 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Create scripts directory and add scripts
+      run: |
+        mkdir -p scripts
+        echo '#!/bin/bash
+        while ! mysqladmin ping -h"$DB_HOST" --silent; do
+            echo "Waiting for MySQL..."
+            sleep 2
+        done' > scripts/wait_on_mysql.sh
+        echo '#!/bin/bash
+        echo "Starting the application..."
+        # Add your startup commands here' > scripts/launch_within_docker.sh
+        chmod +x scripts/wait_on_mysql.sh scripts/launch_within_docker.sh
+
     - name: Generate Dockerfiles from Compose
       run: |
         # Create Dockerfile for the db service
@@ -110,5 +123,14 @@ jobs:
             cap_drop:
               - MKNOD' > docker-compose.yml
     
+    - name: Create db.env file
+      run: |
+        echo 'DB_HOST=db
+        DB_PORT=3306
+        MYSQL_DATABASE=whatsapp
+        MYSQL_USER=testuser
+        MYSQL_PASSWORD=testpass
+        MYSQL_ROOT_PASSWORD=testpass' > db.env
+
     - name: Run Docker Compose
       run: docker-compose up -d
